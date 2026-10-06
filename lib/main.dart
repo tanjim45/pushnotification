@@ -9,9 +9,11 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  final notificationService = NotificationService();
 
-  await notificationService.initialize();
+  NotificationService notificationService = NotificationService();
+
+  await notificationService.requestPermission();
+  await notificationService.getToken();
 
   runApp(const MyApp());
 }
