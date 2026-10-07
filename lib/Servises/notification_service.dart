@@ -2,25 +2,42 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
+  // Firebase Messaging
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
+  // Local Notification
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  // Firebase notification permission + local notification setup
+  // Notification Channel ID
+  static const String channelId = 'high_importance_channel';
+
+  // Notification Channel Name
+  static const String channelName = 'High Importance Notifications';
+
+
+
   Future<void> initialize() async {
-    // Firebase notification permission
+    //  Firebase notification permission
+ 
+
     await _messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
+      provisional: false,
     );
 
-    // Local notification permission
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    // Android notification permission
+   
+
+    final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
+        _localNotifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidPlugin?.requestNotificationsPermission();
+
+    //  Initialize local notification
 
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -34,63 +51,89 @@ class NotificationService {
       settings: initializationSettings,
     );
 
-    // Notification channel
+    //  Create HIGH IMPORTANCE notification channel
+
     const AndroidNotificationChannel channel =
         AndroidNotificationChannel(
-      'high_importance_channel',
-      'High Importance Notifications',
+      channelId,
+      channelName,
       description: 'This channel is used for important notifications.',
-      importance: Importance.high,
+      importance: Importance.max,
       playSound: true,
+      enableVibration: true,
     );
 
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+    await androidPlugin?.createNotificationChannel(channel);
   }
 
-  // FCM Token
+  // GET FCM TOKEN
+
   Future<void> getToken() async {
-    String? token = await _messaging.getToken();
+    try {
+      final String? token = await _messaging.getToken();
 
-    print('FCM TOKEN: $token');
+      print('======================================');
+      print('FCM TOKEN:');
+      print(token);
+      print('======================================');
+    } catch (e) {
+      print('FCM TOKEN ERROR: $e');
+    }
   }
 
-  // App খোলা থাকা অবস্থায় message receive
+  // LISTEN TO FOREGROUND MESSAGES
+
   void listenToMessages() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('==============================');
-      print('NOTIFICATION RECEIVED');
-      print('Title: ${message.notification?.title}');
-      print('Body: ${message.notification?.body}');
-      print('==============================');
+    FirebaseMessaging.onMessage.listen(
+      (RemoteMessage message) {
+        print('======================================');
+        print('NOTIFICATION RECEIVED');
+        print('Title: ${message.notification?.title}');
+        print('Body: ${message.notification?.body}');
+        print('======================================');
 
-      final RemoteNotification? notification = message.notification;
+        final RemoteNotification? notification = message.notification;
 
-      if (notification != null) {
-        _showNotification(
-          notification.title ?? 'Notification',
-          notification.body ?? '',
-        );
-      }
-    });
+        if (notification != null) {
+          _showNotification(
+            notification.title ?? 'Notification',
+            notification.body ?? '',
+          );
+        }
+      },
+    );
   }
 
-  // Phone notification popup + sound
+  // SHOW LOCAL NOTIFICATION
+
   Future<void> _showNotification(
     String title,
     String body,
   ) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
+      channelId,
+      channelName,
       channelDescription:
           'This channel is used for important notifications.',
-      importance: Importance.high,
-      priority: Priority.high,
+
+      // Popup importance
+      importance: Importance.max,
+
+      // Heads-up notification
+      priority: Priority.max,
+
+      // Sound
       playSound: true,
+
+      // Vibration
+      enableVibration: true,
+
+      // Badge
+      showWhen: true,
+
+      // Notification icon
+      icon: '@mipmap/ic_launcher',
     );
 
     const NotificationDetails notificationDetails =
