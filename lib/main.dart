@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+
 import 'package:push_notification_app/Servises/notification_service.dart';
 import 'firebase_options.dart';
 
@@ -10,10 +11,13 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  NotificationService notificationService = NotificationService();
+  NotificationService notificationService =
+      NotificationService();
 
-  await notificationService.requestPermission();
+  await notificationService.initialize();
   await notificationService.getToken();
+
+  notificationService.listenToMessages();
 
   runApp(const MyApp());
 }
